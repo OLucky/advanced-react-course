@@ -34,7 +34,9 @@ const ItemsList = styled.div`
 
 class Items extends Component {
   render() {
-    const page = parseFloat(this.props.query.page) || 1;
+    const query = this.props.query || {};
+
+    const page = parseFloat(query.page) || 1;
 
     return (
       <Center>
@@ -51,7 +53,7 @@ class Items extends Component {
             </ItemsList>
           }}
         </Query>
-        <Pagination page={parseFloat(this.props.query.page) || 1}/>
+        <Pagination page={page}/>
       </Center>
     );
   }

@@ -1,9 +1,12 @@
 require('dotenv').config({path: './variables.env'});
+const cookieParcer = require('cookie-parser');
 
 const createServer = require('./createServer');
 const db = require('./db');
 
 const server = createServer();
+
+server.express.use(cookieParcer());
 
 server.start({
   cors: {
