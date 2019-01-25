@@ -1,9 +1,11 @@
-import Items from './items';
+import Items from '../components/Items';
 
-const Home = props => (
+const Home = props => {
+  console.log(props);
+  return (
   <div>
-    <Items />
+    <Items/>
   </div>
-)
+)}
 
 export default Home;
