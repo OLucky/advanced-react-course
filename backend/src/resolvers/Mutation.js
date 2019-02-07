@@ -3,24 +3,25 @@ const jwt = require('jsonwebtoken');
 const { randomBytes } = require('crypto');
 const { promisify } = require('util');
 
-const {transport, makeANiceEmail} = require('../mail');
-const {hasPermission} = require ('../utils');
+const { transport, makeANiceEmail } = require('../mail');
+const { hasPermission } = require('../utils');
 
 const mutations = {
   async createItem(parent, args, ctx, info) {
-    if(!ctx.request.userId) {
+    if (!ctx.request.userId) {
       throw new Error('You must be logged to do that!');
     }
 
     const item = await ctx.db.mutation.createItem(
       {
-        data: { 
+        data: {
           user: {
             connect: {
               id: ctx.request.userId
             }
           },
-          ...args }
+          ...args
+        }
       },
       info
     );
@@ -45,13 +46,13 @@ const mutations = {
     const item = await ctx.db.query.item({ where }, `{id title user {id}}`);
 
     const ownsItem = item.user.id === ctx.request.userId;
-    const hasPermissions = ctx.request.user.permissions.some(
-      permission => ['ADMIN', 'ITEMDELETE'].includes(permission)
+    const hasPermissions = ctx.request.user.permissions.some(permission =>
+      ['ADMIN', 'ITEMDELETE'].includes(permission)
     );
 
-    if(!ownsItem && !hasPermissions) {
-      throw new Error('You don\'t have permissions to do that.')
-    } 
+    if (!ownsItem && !hasPermissions) {
+      throw new Error("You don't have permissions to do that.");
+    }
 
     return ctx.db.mutation.deleteItem({ where }, info);
   },
@@ -120,20 +121,21 @@ const mutations = {
       subject: 'Password reset token',
       html: makeANiceEmail(`Your password reset link:<br> 
       <a href="${process.env.FRONTEND_URL}/reset?resetToken=${resetToken}">Click here to reset</a>`)
-    })
+    });
 
     return { message: 'Reset is permitted!' };
   },
-  async resetPassword(parent, {resetToken, password, confirmPassword}, ctx, info) {
+  async resetPassword(parent, { resetToken, password, confirmPassword }, ctx, info) {
     if (password !== confirmPassword) {
       throw new Error(`The passwords doesn't match!`);
     }
 
-    const [user] = await ctx.db.query.users({ 
-      where: { 
+    const [user] = await ctx.db.query.users({
+      where: {
         resetToken,
-        resetTokenExpiry_gte: Date.now() - 3600000 
-      }});
+        resetTokenExpiry_gte: Date.now() - 3600000
+      }
+    });
     if (!user) {
       throw new Error('The token is invalid or expired');
     }
@@ -154,22 +156,81 @@ const mutations = {
     return user;
   },
   async updatePermissions(parent, args, ctx, info) {
-    if(!ctx.request.userId) {
+    if (!ctx.request.userId) {
       return null;
     }
 
     const currentUser = ctx.request.user;
     hasPermission(currentUser, ['ADMIN', 'PERMISSIONUPDATE']);
 
-    return ctx.db.mutation.updateUser({
-      data: {permissions: {
-        set: args.permissions
-      }},
-      where: {
-        id: args.userId
-      }
-    }, info)
+    return ctx.db.mutation.updateUser(
+      {
+        data: {
+          permissions: {
+            set: args.permissions
+          }
+        },
+        where: {
+          id: args.userId
+        }
+      },
+      info
+    );
   },
+  async addToCart(parent, args, ctx, info) {
+    const userId = ctx.request.userId;
+    if (!userId) {
+      return null;
+    }
+
+    const [existingCartItem] = await ctx.db.query.cartItems({
+      where: {
+        user: { id: userId },
+        item: { id: args.id }
+      }
+    });
+
+    if (existingCartItem) {
+      return ctx.db.mutation.updateCartItem(
+        {
+          where: { id: existingCartItem.id },
+          data: { quantity: existingCartItem.quantity + 1 }
+        },
+        info
+      );
+    } else {
+      return ctx.db.mutation.createCartItem(
+        {
+          data: {
+            user: {
+              connect: { id: userId }
+            },
+            item: {
+              connect: { id: args.id }
+            }
+          }
+        },
+        info
+      );
+    }
+  },
+  async removeCartItem(parent, args, ctx, info) {
+    const userId = ctx.request.userId;
+    if (!userId) {
+      return null;
+    }
+
+    const where = { id: args.id };
+    const cartItem = await ctx.db.query.cartItem({ where }, `{id user {id}}`);
+
+    const ownsItem = cartItem.user.id === ctx.request.userId;
+
+    if (!ownsItem) {
+      throw new Error("You don't have permissions to do that.");
+    }
+
+    return ctx.db.mutation.deleteCartItem({ where }, info);
+  }
 };
 
 module.exports = mutations;
