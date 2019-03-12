@@ -63,11 +63,9 @@ class CreateItem extends Component {
       <Mutation mutation={CREATE_ITEM_MUTATION} variables={this.state}>
         {(createItem, { loading, error }) => (
           <Form
+            data-test="item-form"
             onSubmit={async e => {
               e.preventDefault();
-              if(!this.state.image) {
-                return;
-              }
               const res = await createItem();
               Router.push({
                 pathname: "/item",
@@ -84,7 +82,6 @@ class CreateItem extends Component {
                   name="file"
                   id="file"
                   placeholder="Upload an image"
-                  required
                   onChange={this.uploadFile}
                 />
                 {this.state.image && <img width="200" src={this.state.image} alt="Upload Preview" />}

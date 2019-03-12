@@ -24,7 +24,7 @@ class RequestReset extends Component {
     return (
       <Mutation mutation={REQUEST_RESET_MUTATION} variables={this.state}>
         {(requestReset, { error, loading, called }) => (
-          <Form method="post" onSubmit={async e => {
+          <Form method="post" data-test="reset-form" onSubmit={async e => {
             e.preventDefault();
             await requestReset();
             this.setState({
@@ -56,3 +56,4 @@ class RequestReset extends Component {
 }
 
 export default RequestReset;
+export {REQUEST_RESET_MUTATION};
